@@ -8,7 +8,7 @@ import os
 
 # TOKEN
 BOT_TOKEN = "8025238786:AAEle3_zq8Iz7Gt1GwzicPKLAYLPdrIVIrQ"
-ADMIN_CHANNEL_USERNAME = "@moviecodedfschannel"  # ommaviy kanal username
+ADMIN_CHANNEL_USERNAME = "@curpasideldfwffa"  # ommaviy kanal username
 ADMIN_ID = 8062273832
 
 # States
@@ -109,4 +109,5 @@ if __name__ == '__main__':
     app.add_handler(conv)
     print("✅ Bot ishga tushdi...")
     app.run_polling()
+
 

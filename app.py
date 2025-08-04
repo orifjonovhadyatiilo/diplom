@@ -109,5 +109,19 @@ if __name__ == '__main__':
     app.add_handler(conv)
     print("✅ Bot ishga tushdi...")
     app.run_polling()
+def run():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# Telegram webhookni o‘rnatish
+async def main():
+    await application.bot.set_webhook(url=f"{WEBHOOK_URL}/{BOT_TOKEN}")
+    await application.initialize()
+    await application.start()
+
+if __name__ == "__main__":
+    threading.Thread(target=run).start()
+    asyncio.run(main())
+
 
 

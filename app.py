@@ -1,74 +1,65 @@
 import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    ConversationHandler,
-    filters,
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, ConversationHandler, filters
 )
 
-# Config
 BOT_TOKEN = "8025238786:AAFFe7tNp03c4Cr8fWy6Tie-EdIGHpzIqfY"
-CHANNEL_ID = "@curpasideldfwffa"
+ADMIN_ID = 8062273832
+CHANNEL_USERNAME = "@curpasideldfwffa"  # ommaviy kanal username
 
-# Logging
+# Bosqichlar
+(ASK_NAME, ASK_PASSPORT, ASK_JSHSHIR, ASK_PHONE, ASK_RECEIPT) = range(5)
+
 logging.basicConfig(level=logging.INFO)
 
-# States
-NAME, JSHSHIR, PASSPORT, PHONE, CHEK = range(5)
-
-# Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👤 Ism va familiyangizni kiriting:")
-    return NAME
+    await update.message.reply_text("👋 Salom! Ariza topshirish uchun ismingizni va familiyangizni kiriting:")
+    return ASK_NAME
 
-async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["name"] = update.message.text
-    await update.message.reply_text("🆔 JSHSHIR raqamingizni kiriting:")
-    return JSHSHIR
+async def ask_passport(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["name"] = update.message.text.strip()
+    await update.message.reply_text("🪪 Passport seriya va raqamingizni kiriting (masalan: AA1234567):")
+    return ASK_PASSPORT
 
-async def get_jshshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["jshshir"] = update.message.text
-    await update.message.reply_text("📄 Passport seriya va raqamini kiriting:")
-    return PASSPORT
+async def ask_jshshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["passport"] = update.message.text.strip()
+    await update.message.reply_text("🔢 JSHSHIR raqamingizni kiriting:")
+    return ASK_JSHSHIR
 
-async def get_passport(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["passport"] = update.message.text
-    await update.message.reply_text("📞 Telefon raqamingizni kiriting:")
-    return PHONE
+async def ask_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["jshshir"] = update.message.text.strip()
+    await update.message.reply_text("📱 Telefon raqamingizni kiriting:")
+    return ASK_PHONE
 
-async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["phone"] = update.message.text
-    await update.message.reply_text("💳 To‘lov chek rasmini yuboring:")
-    return CHEK
+async def ask_receipt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["phone"] = update.message.text.strip()
+    await update.message.reply_text("💳 20,000 so‘mni ushbu karta raqamiga to‘lang:\n\n9860 2566 0118 3567 (HUMO)\n\nSo‘ngra to‘lov chek rasmini yuboring:")
+    return ASK_RECEIPT
 
-async def get_chek(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.photo:
-        await update.message.reply_text("Iltimos, faqat rasm yuboring.")
-        return CHEK
-
-    photo_file = update.message.photo[-1].file_id
-
-    # User info
-    user_data = context.user_data
+async def receive_receipt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    photo = update.message.photo[-1]
     caption = (
-        f"🧾 Yangi so‘rov!\n\n"
-        f"👤 Ism: {user_data['name']}\n"
-        f"🆔 JSHSHIR: {user_data['jshshir']}\n"
-        f"📄 Passport: {user_data['passport']}\n"
-        f"📞 Telefon: {user_data['phone']}"
+        f"📥 Yangi ariza:\n"
+        f"👤 Ism: {context.user_data['name']}\n"
+        f"🪪 Passport: {context.user_data['passport']}\n"
+        f"🔢 JSHSHIR: {context.user_data['jshshir']}\n"
+        f"📞 Telefon: {context.user_data['phone']}"
     )
 
-    # Send to channel
+    # Kanal chat_id sini username orqali olish
+    chat = await context.bot.get_chat(CHANNEL_USERNAME)
+    channel_id = chat.id
+
+    # Kanalga yuborish
     await context.bot.send_photo(
-        chat_id=CHANNEL_ID,
-        photo=photo_file,
+        chat_id=channel_id,
+        photo=photo.file_id,
         caption=caption
     )
 
-    await update.message.reply_text("✅ Ma’lumotlaringiz muvaffaqiyatli yuborildi!")
+    await update.message.reply_text("✅ Arizangiz qabul qilindi! Tez orada siz bilan bog‘lanamiz.")
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -78,18 +69,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    conv = ConversationHandler(
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-            JSHSHIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_jshshir)],
-            PASSPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_passport)],
-            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
-            CHEK: [MessageHandler(filters.PHOTO, get_chek)],
+            ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_passport)],
+            ASK_PASSPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_jshshir)],
+            ASK_JSHSHIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_phone)],
+            ASK_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_receipt)],
+            ASK_RECEIPT: [MessageHandler(filters.PHOTO, receive_receipt)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    app.add_handler(conv)
-    print("Bot ishlayapti...")
+    app.add_handler(conv_handler)
     app.run_polling()

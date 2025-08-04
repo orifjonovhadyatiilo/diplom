@@ -7,7 +7,7 @@ from telegram.ext import (
 import os
 
 # TOKEN
-BOT_TOKEN = "8025238786:AAFFe7tNp03c4Cr8fWy6Tie-EdIGHpzIqfY"
+BOT_TOKEN = "8025238786:AAEle3_zq8Iz7Gt1GwzicPKLAYLPdrIVIrQ"
 ADMIN_CHANNEL_USERNAME = "@moviecodedfschannel"  # ommaviy kanal username
 ADMIN_ID = 8062273832
 
@@ -109,3 +109,4 @@ if __name__ == '__main__':
     app.add_handler(conv)
     print("✅ Bot ishga tushdi...")
     app.run_polling()
+

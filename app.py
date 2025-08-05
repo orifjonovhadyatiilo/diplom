@@ -119,10 +119,13 @@ def home():
 
 # Telegram botni ishga tushiruvchi funksiya
 def run_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(conv)
+    app.add_handler(conv)  # handlerlaringiz shu yerga qo‘shilsin
     print("✅ Bot ishga tushdi...")
-    app.run_polling()
+    loop.run_until_complete(app.run_polling())
 
 if __name__ == '__main__':
     # Botni alohida threadda ishga tushiramiz
@@ -142,6 +145,7 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run).start()
     asyncio.run(main())
+
 
 
 

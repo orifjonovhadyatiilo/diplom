@@ -8,7 +8,6 @@ from telegram import (
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler
 )
-import os
 
 # TOKEN
 BOT_TOKEN = "8025238786:AAEle3_zq8Iz7Gt1GwzicPKLAYLPdrIVIrQ"
@@ -94,60 +93,44 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Bekor qilindi.")
     return ConversationHandler.END
 
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+# ConversationHandler (boshqaruvchi)
+conv = ConversationHandler(
+    entry_points=[CommandHandler("start", start)],
+    states={
+        ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
+        ASK_PHONE: [MessageHandler(filters.CONTACT | filters.TEXT, ask_phone)],
+        ASK_PASSPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_passport)],
+        ASK_JSHSHIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_jshshir)],
+        ASK_DIPLOM: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_diplom)],
+        ASK_RECEIPT: [MessageHandler(filters.PHOTO, ask_receipt)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
 
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
-            ASK_PHONE: [MessageHandler(filters.CONTACT | filters.TEXT, ask_phone)],
-            ASK_PASSPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_passport)],
-            ASK_JSHSHIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_jshshir)],
-            ASK_DIPLOM: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_diplom)],
-            ASK_RECEIPT: [MessageHandler(filters.PHOTO, ask_receipt)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
-
-   # Flask app yaratamiz
+# Flask app
 flask_app = Flask(__name__)
 
-# Flask route (asosiy sahifa)
 @flask_app.route('/')
 def home():
     return "Bot ishlayapti."
 
-# Telegram botni ishga tushiruvchi funksiya
-def run_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(conv)  # handlerlaringiz shu yerga qo‘shilsin
+# Botni asosiy threadda ishga tushuramiz
+async def run_bot():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(conv)
     print("✅ Bot ishga tushdi...")
-    loop.run_until_complete(app.run_polling())
+    await application.run_polling()
 
-if __name__ == '__main__':
-    # Botni alohida threadda ishga tushiramiz
-    threading.Thread(target=run_bot).start()
-
-    # Flask serverni kerakli PORT bilan ishga tushiramiz
+# Flask alohida threadda
+def run_flask():
     port = int(os.environ.get("PORT", 10000))
     flask_app.run(host="0.0.0.0", port=port)
 
-
-# Telegram webhookni o‘rnatish
-async def main():
-    await application.bot.set_webhook(url=f"{WEBHOOK_URL}/{BOT_TOKEN}")
-    await application.initialize()
-    await application.start()
-
 if __name__ == "__main__":
-    threading.Thread(target=run).start()
-    asyncio.run(main())
-
-
+    # Flask serverni threadda ishga tushuramiz
+    threading.Thread(target=run_flask).start()
+    # Telegram botni asosiy threadda ishga tushuramiz
+    asyncio.run(run_bot())
 
 
 

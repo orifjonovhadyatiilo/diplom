@@ -108,12 +108,29 @@ if __name__ == '__main__':
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
+   # Flask app yaratamiz
+flask_app = Flask(__name__)
+
+# Flask route (asosiy sahifa)
+@flask_app.route('/')
+def home():
+    return "Bot ishlayapti."
+
+# Telegram botni ishga tushiruvchi funksiya
+def run_bot():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(conv)
     print("✅ Bot ishga tushdi...")
     app.run_polling()
-def run():
+
+if __name__ == '__main__':
+    # Botni alohida threadda ishga tushiramiz
+    threading.Thread(target=run_bot).start()
+
+    # Flask serverni kerakli PORT bilan ishga tushiramiz
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    flask_app.run(host="0.0.0.0", port=port)
+
 
 # Telegram webhookni o‘rnatish
 async def main():
@@ -124,6 +141,7 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run).start()
     asyncio.run(main())
+
 
 
 

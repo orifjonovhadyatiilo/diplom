@@ -1,12 +1,13 @@
 import os
-from flask import Flask
 import asyncio
 import threading
+from flask import Flask
 from telegram import (
-    Update, ReplyKeyboardMarkup, KeyboardButton, InputFile
+    Update, ReplyKeyboardMarkup, KeyboardButton
 )
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, ConversationHandler
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, filters, ConversationHandler
 )
 
 # TOKEN
@@ -20,7 +21,6 @@ ADMIN_ID = 8062273832
     ASK_DIPLOM, ASK_RECEIPT
 ) = range(6)
 
-# User data dictionary
 user_data = {}
 
 # --- HANDLERS ---
@@ -120,20 +120,27 @@ flask_app = Flask(__name__)
 def home():
     return "✅ Bot va server ishlayapti."
 
-# --- TELEGRAM BOTNI ASYNC ISHLATISH ---
-def run_bot():
-    async def start_bot():
-        app = ApplicationBuilder().token(BOT_TOKEN).build()
-        app.add_handler(conv)
-        print("✅ Bot ishga tushdi...")
-        await app.run_polling()
-    asyncio.run(start_bot())
+# --- Telegram bot va Flask ni birga ishlatish ---
+async def start_bot():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(conv)
+    print("✅ Telegram bot ishga tushdi...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.idle()
+
+def start():
+    loop = asyncio.get_event_loop()
+
+    # Flask serverni ishga tushirish uchun thread
+    flask_thread = threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))))
+    flask_thread.start()
+
+    # Telegram botni loop orqali ishlatish
+    loop.run_until_complete(start_bot())
 
 # --- START ---
 if __name__ == "__main__":
-    # Flask serverni alohida threadda ishga tushuramiz
-    threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))).start()
-
-    # Telegram botni asosiy threadda ishga tushuramiz
-    run_bot()
+    start()
 

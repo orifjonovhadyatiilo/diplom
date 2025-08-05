@@ -2,9 +2,7 @@ import os
 import asyncio
 import threading
 from flask import Flask
-from telegram import (
-    Update, ReplyKeyboardMarkup, KeyboardButton
-)
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ContextTypes, filters, ConversationHandler
@@ -99,7 +97,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # === CONVERSATION HANDLER ===
-conv = ConversationHandler(
+conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
         ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
@@ -119,19 +117,26 @@ flask_app = Flask(__name__)
 def home():
     return "✅ Bot va server ishlayapti."
 
-# === ASYNC START FUNCTION ===
-async def run_bot():
+# === ASYNC BOT START FUNCTION ===
+async def run_bot_async():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(conv)
+    app.add_handler(conv_handler)
     print("✅ Telegram bot ishga tushdi...")
-    await app.run_polling()  # YANGI: Bu o‘z ichida initialize/start/idle qiladi
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.wait()
 
-# === THREADING START ===
+# === START FUNCTION ===
 def start():
+    # Flask ni alohida threadda ishga tushiramiz
     flask_thread = threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))))
     flask_thread.start()
 
-    asyncio.run(run_bot())
+    # Asosiy asyncio loop ichida Telegram botni ishga tushuramiz
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_bot_async())
+    loop.run_forever()
 
 # === ENTRY POINT ===
 if __name__ == "__main__":

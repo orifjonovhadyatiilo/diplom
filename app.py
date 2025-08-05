@@ -11,7 +11,7 @@ from telegram.ext import (
 
 # TOKEN
 BOT_TOKEN = "8025238786:AAEle3_zq8Iz7Gt1GwzicPKLAYLPdrIVIrQ"
-ADMIN_CHANNEL_USERNAME = "@curpasideldfwffa"  # ommaviy kanal username
+ADMIN_CHANNEL_USERNAME = "@curpasideldfwffa"
 ADMIN_ID = 8062273832
 
 # States
@@ -22,6 +22,8 @@ ADMIN_ID = 8062273832
 
 # User data dictionary
 user_data = {}
+
+# --- HANDLERS ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -60,7 +62,11 @@ async def ask_jshshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ask_diplom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_data[user_id]['diplom'] = update.message.text
-    await update.message.reply_text("💳 20 000 so'm to‘lovni ushbu karta raqamiga o‘tkazing: \n\n💳 *9860 2566 0118 3567*\n\nSo‘ng kvitansiya (check) rasmini yuboring.", parse_mode="Markdown")
+    await update.message.reply_text(
+        "💳 20 000 so'm to‘lovni ushbu karta raqamiga o‘tkazing: \n\n💳 *9860 2566 0118 3567*\n\n"
+        "So‘ng kvitansiya (check) rasmini yuboring.",
+        parse_mode="Markdown"
+    )
     return ASK_RECEIPT
 
 async def ask_receipt(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -93,7 +99,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Bekor qilindi.")
     return ConversationHandler.END
 
-# ConversationHandler (boshqaruvchi)
+# --- CONVERSATION HANDLER ---
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -107,31 +113,27 @@ conv = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
-# Flask app
+# --- FLASK ---
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
 def home():
-    return "Bot ishlayapti."
+    return "✅ Bot va server ishlayapti."
 
-# Botni asosiy threadda ishga tushuramiz
-async def run_bot():
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-    application.add_handler(conv)
-    print("✅ Bot ishga tushdi...")
-    await application.run_polling()
+# --- TELEGRAM BOTNI ASYNC ISHLATISH ---
+def run_bot():
+    async def start_bot():
+        app = ApplicationBuilder().token(BOT_TOKEN).build()
+        app.add_handler(conv)
+        print("✅ Bot ishga tushdi...")
+        await app.run_polling()
+    asyncio.run(start_bot())
 
-# Flask alohida threadda
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    flask_app.run(host="0.0.0.0", port=port)
-
+# --- START ---
 if __name__ == "__main__":
-    # Flask serverni threadda ishga tushuramiz
-    threading.Thread(target=run_flask).start()
+    # Flask serverni alohida threadda ishga tushuramiz
+    threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))).start()
+
     # Telegram botni asosiy threadda ishga tushuramiz
-    asyncio.run(run_bot())
-
-
-
+    run_bot()
 

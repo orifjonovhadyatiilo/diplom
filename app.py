@@ -2,7 +2,7 @@ import os
 import asyncio
 import threading
 from flask import Flask
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ContextTypes, filters, ConversationHandler
@@ -16,7 +16,7 @@ ADMIN_ID = 8062273832
 # === STATES ===
 (
     ASK_NAME, ASK_PHONE, ASK_PASSPORT, ASK_JSHSHIR,
-    ASK_DIPLOM, ASK_RECEIPT
+    ASK_DIPLOM_PHOTO, ASK_RECEIPT
 ) = range(6)
 
 user_data = {}
@@ -53,43 +53,49 @@ async def ask_passport(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ask_jshshir(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_data[user_id]['jshshir'] = update.message.text
-    await update.message.reply_text("🎓 Diplom raqamingizni kiriting:")
-    return ASK_DIPLOM
+    await update.message.reply_text("📸 Iltimos, diplom suratini yuboring (sifatli bo‘lishi kerak):")
+    return ASK_DIPLOM_PHOTO
 
-async def ask_diplom(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def ask_diplom_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    user_data[user_id]['diplom'] = update.message.text
-    await update.message.reply_text(
-        "💳 20 000 so'm to‘lovni ushbu karta raqamiga o‘tkazing: \n\n💳 *9860 2566 0118 3567*\n\n"
-        "So‘ng kvitansiya (check) rasmini yuboring.",
-        parse_mode="Markdown"
-    )
-    return ASK_RECEIPT
+    if update.message.photo:
+        user_data[user_id]['diplom_photo'] = update.message.photo[-1].file_id
+        await update.message.reply_text(
+            "💳 20 000 so'm to‘lovni ushbu karta raqamiga o‘tkazing: \n\n💳 *9860 2566 0118 3567*\n\n"
+            "So‘ng kvitansiya (check) rasmini yuboring.",
+            parse_mode="Markdown"
+        )
+        return ASK_RECEIPT
+    else:
+        await update.message.reply_text("❗ Iltimos, diplom suratini yuboring.")
+        return ASK_DIPLOM_PHOTO
 
 async def ask_receipt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if update.message.photo:
-        photo = update.message.photo[-1]
-        file_id = photo.file_id
+        check_photo = update.message.photo[-1].file_id
+        diplom_photo = user_data[user_id].get('diplom_photo')
+
         caption = (
             f"📥 Yangi ariza\n\n"
             f"👤 Ismi: {user_data[user_id]['name']}\n"
             f"📞 Tel: {user_data[user_id]['phone']}\n"
             f"🛂 Pasport: {user_data[user_id]['passport']}\n"
             f"🔢 JSHSHIR: {user_data[user_id]['jshshir']}\n"
-            f"🎓 Diplom: {user_data[user_id]['diplom']}\n"
             f"👤 Username: @{update.effective_user.username or 'yo‘q'}\n"
             f"🆔 ID: {user_id}"
         )
-        await context.bot.send_photo(
-            chat_id=ADMIN_CHANNEL_USERNAME,
-            photo=file_id,
-            caption=caption
-        )
+
+        media = [
+            InputMediaPhoto(media=diplom_photo, caption="🎓 Diplom surati"),
+            InputMediaPhoto(media=check_photo, caption=caption),
+        ]
+
+        await context.bot.send_media_group(chat_id=ADMIN_CHANNEL_USERNAME, media=media)
         await update.message.reply_text("✅ Ma'lumotlaringiz qabul qilindi. Tez orada siz bilan bog‘lanamiz.")
         return ConversationHandler.END
     else:
-        await update.message.reply_text("❗ Iltimos, kvitansiya fotosuratini yuboring.")
+        await update.message.reply_text("❗ Iltimos, kvitansiya (check) suratini yuboring.")
         return ASK_RECEIPT
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -104,7 +110,7 @@ conv_handler = ConversationHandler(
         ASK_PHONE: [MessageHandler(filters.CONTACT | filters.TEXT, ask_phone)],
         ASK_PASSPORT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_passport)],
         ASK_JSHSHIR: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_jshshir)],
-        ASK_DIPLOM: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_diplom)],
+        ASK_DIPLOM_PHOTO: [MessageHandler(filters.PHOTO, ask_diplom_photo)],
         ASK_RECEIPT: [MessageHandler(filters.PHOTO, ask_receipt)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
@@ -129,11 +135,9 @@ async def run_bot_async():
 
 # === START FUNCTION ===
 def start():
-    # Flask ni alohida threadda ishga tushiramiz
     flask_thread = threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))))
     flask_thread.start()
 
-    # Asosiy asyncio loop ichida Telegram botni ishga tushuramiz
     loop = asyncio.get_event_loop()
     loop.create_task(run_bot_async())
     loop.run_forever()
@@ -141,4 +145,5 @@ def start():
 # === ENTRY POINT ===
 if __name__ == "__main__":
     start()
+
 

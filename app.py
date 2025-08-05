@@ -10,12 +10,12 @@ from telegram.ext import (
     ContextTypes, filters, ConversationHandler
 )
 
-# TOKEN
+# === CONFIGURATION ===
 BOT_TOKEN = "8025238786:AAEle3_zq8Iz7Gt1GwzicPKLAYLPdrIVIrQ"
 ADMIN_CHANNEL_USERNAME = "@curpasideldfwffa"
 ADMIN_ID = 8062273832
 
-# States
+# === STATES ===
 (
     ASK_NAME, ASK_PHONE, ASK_PASSPORT, ASK_JSHSHIR,
     ASK_DIPLOM, ASK_RECEIPT
@@ -23,8 +23,7 @@ ADMIN_ID = 8062273832
 
 user_data = {}
 
-# --- HANDLERS ---
-
+# === HANDLERS ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_data[user_id] = {}
@@ -99,7 +98,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Bekor qilindi.")
     return ConversationHandler.END
 
-# --- CONVERSATION HANDLER ---
+# === CONVERSATION HANDLER ===
 conv = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
@@ -113,34 +112,28 @@ conv = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
-# --- FLASK ---
+# === FLASK APP ===
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
 def home():
     return "✅ Bot va server ishlayapti."
 
-# --- Telegram bot va Flask ni birga ishlatish ---
-async def start_bot():
+# === ASYNC START FUNCTION ===
+async def run_bot():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(conv)
     print("✅ Telegram bot ishga tushdi...")
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.idle()
+    await app.run_polling()  # YANGI: Bu o‘z ichida initialize/start/idle qiladi
 
+# === THREADING START ===
 def start():
-    loop = asyncio.get_event_loop()
-
-    # Flask serverni ishga tushirish uchun thread
     flask_thread = threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))))
     flask_thread.start()
 
-    # Telegram botni loop orqali ishlatish
-    loop.run_until_complete(start_bot())
+    asyncio.run(run_bot())
 
-# --- START ---
+# === ENTRY POINT ===
 if __name__ == "__main__":
     start()
 

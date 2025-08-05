@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+import asyncio
 import threading
 from telegram import (
     Update, ReplyKeyboardMarkup, KeyboardButton, InputFile
@@ -145,6 +146,7 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run).start()
     asyncio.run(main())
+
 
 
 
